@@ -55,6 +55,21 @@
         "video_crf": 32
       },
       "source_sha256": "98fb56cac79eb817ba125bf8afd8f1b6cca9e4777c545aee631578ef0cf32ae3"
+    },
+    "duck.mp4": {
+      "output": "duck.webm",
+      "output_sha256": "0a4907747e0161768e5228c14cc2b5cdcdf30dfccd0735e8c18c03a91222a39b",
+      "settings": {
+        "audio_bitrate": "128k",
+        "ffmpeg_version": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
+        "image_method": 6,
+        "image_quality": 82,
+        "pillow_version": "12.3.0",
+        "version": 1,
+        "video_cpu_used": 2,
+        "video_crf": 32
+      },
+      "source_sha256": "cac5a8c74ed40319f3137e311ea326d0e62bbf31409a92d132ce7645573b0bfa"
     }
   },
   "version": 1
