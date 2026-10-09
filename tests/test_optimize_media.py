@@ -221,19 +221,134 @@ class SynchronizationTests(unittest.TestCase):
             self.assertEqual(image.info["duration"], 80)
             self.assertGreater(image.convert("RGB").getpixel((0, 0))[0], 200)
 
-    @unittest.skipUnless(shutil.which("ffmpeg"), "FFmpeg is not installed")
+    def test_video_budget_two_pass_audio_and_retry(self):
+        source = self.source / "clip.mp4"
+        source.write_bytes(b"x" * 200000)
+        target = self.root / "clip.webm"
+        for audio in [None, {"codec_type": "audio", "channels": 1, "bit_rate": "32000"},
+                      {"codec_type": "audio", "channels": 2}]:
+            with self.subTest(audio=audio):
+                calls = []
+                sizes = iter([180000, 150000])
+
+                def run(command, **kwargs):
+                    calls.append(command)
+                    if command[0] == "ffprobe":
+                        return subprocess.CompletedProcess(command, 0, stdout=json.dumps({
+                            "format": {"duration": "10"},
+                            "streams": [audio] if audio else [],
+                        }))
+                    if command[command.index("-pass") + 1] == "2":
+                        target.write_bytes(b"v" * next(sizes))
+                    return subprocess.CompletedProcess(command, 0)
+
+                with patch.object(media.subprocess, "run", side_effect=run):
+                    self.assertEqual(media.encode_video(source, target), target)
+                self.assertEqual(len(calls), 5)
+                audio_rate = 0 if audio is None else (32000 if audio["channels"] == 1 else 96000)
+                budget = int(160000 * 8 / 10 * 0.97 - audio_rate)
+                self.assertEqual(calls[1][calls[1].index("-b:v") + 1], str(budget))
+                self.assertIn("-an", calls[1])
+                self.assertEqual(calls[2][calls[2].index("-b:a") + 1], str(audio_rate or 96000))
+                self.assertLess(int(calls[3][calls[3].index("-b:v") + 1]), budget)
+                self.assertEqual(target.stat().st_size, 150000)
+                self.assertFalse(Path(calls[1][calls[1].index("-passlogfile") + 1]).parent.exists())
+
+    def test_oversized_video_falls_back_after_bounded_retries(self):
+        source = self.source / "clip.mp4"
+        source.write_bytes(b"original" * 1000)
+        target = self.root / "clip.webm"
+
+        def run(command, **kwargs):
+            if command[0] == "ffprobe":
+                return subprocess.CompletedProcess(command, 0, stdout=json.dumps({
+                    "format": {"duration": "1"}, "streams": [],
+                }))
+            if command[command.index("-pass") + 1] == "2":
+                target.write_bytes(b"v" * 10000)
+            return subprocess.CompletedProcess(command, 0)
+
+        with patch.object(media.subprocess, "run", side_effect=run) as runner:
+            fallback = media.encode_video(source, target)
+        self.assertEqual(runner.call_count, 5)
+        self.assertFalse(target.exists())
+        self.assertEqual(fallback.suffix, ".mp4")
+        self.assertEqual(fallback.read_bytes(), source.read_bytes())
+
+    def test_video_fallback_is_cached_and_pruned_when_webm_succeeds(self):
+        source = self.source / "clip.mp4"
+        source.write_bytes(b"original")
+
+        def fallback(source, target):
+            target = target.with_suffix(".mp4")
+            shutil.copyfile(source, target)
+            return target
+
+        version = subprocess.CompletedProcess([], 0, stdout="ffmpeg test\n")
+        with patch.object(media.subprocess, "run", return_value=version):
+            with patch.object(media, "encode_video", side_effect=fallback):
+                media.synchronize()
+            before = self.snapshot()
+            self.assertEqual(json.loads(self.manifest.read_text())["assets"]["clip.mp4"]["output"],
+                             "clip.mp4")
+            with patch.object(media, "encode_video", side_effect=AssertionError("reencoded")):
+                media.synchronize()
+            self.assertEqual(self.snapshot(), before)
+
+            def webm(source, target):
+                target.write_bytes(b"vp9")
+                return target
+
+            source.write_bytes(b"changed original")
+            with patch.object(media, "encode_video", side_effect=webm):
+                media.synchronize()
+            self.assertFalse((self.output / "clip.mp4").exists())
+            self.assertTrue((self.output / "clip.webm").exists())
+
+    def test_video_with_no_available_video_budget_skips_encoding(self):
+        source = self.source / "clip.mp4"
+        source.write_bytes(b"small")
+        target = self.root / "clip.webm"
+        probe = subprocess.CompletedProcess([], 0, stdout=json.dumps({
+            "format": {"duration": "10"},
+            "streams": [{"codec_type": "audio", "channels": 2}],
+        }))
+        with patch.object(media.subprocess, "run", return_value=probe) as runner:
+            fallback = media.encode_video(source, target)
+        self.assertEqual(runner.call_count, 1)
+        self.assertEqual(fallback.read_bytes(), source.read_bytes())
+
+    def test_invalid_video_duration_fails_before_encoding(self):
+        source = self.source / "clip.mp4"
+        source.write_bytes(b"source")
+        for duration in ["0", "-1", "nan", "inf"]:
+            with self.subTest(duration=duration):
+                probe = subprocess.CompletedProcess([], 0, stdout=json.dumps({
+                    "format": {"duration": duration}, "streams": [],
+                }))
+                with patch.object(media.subprocess, "run", return_value=probe) as runner:
+                    with self.assertRaisesRegex(ValueError, "Invalid video duration"):
+                        media.encode_video(source, self.root / "clip.webm")
+                self.assertEqual(runner.call_count, 1)
+
+    @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"), "FFmpeg is not installed")
     def test_mp4_with_and_without_audio(self):
         for name, audio in [("silent.mp4", False), ("sound.mp4", True)]:
             command = ["ffmpeg", "-nostdin", "-loglevel", "error", "-y", "-f", "lavfi",
-                       "-i", "color=c=red:s=16x16:r=5:d=0.4"]
+                       "-i", "testsrc2=s=128x72:r=10:d=2"]
             if audio:
-                command += ["-f", "lavfi", "-i", "sine=frequency=440:duration=0.4",
+                command += ["-f", "lavfi", "-i", "sine=frequency=440:duration=2",
                             "-c:a", "aac"]
-            command += ["-c:v", "libx264", "-pix_fmt", "yuv420p", str(self.source / name)]
+            command += ["-c:v", "libx264", "-crf", "10", "-pix_fmt", "yuv420p",
+                        str(self.source / name)]
             subprocess.run(command, check=True)
         media.synchronize()
         for name, audio in [("silent.mp4", False), ("sound.mp4", True)]:
-            output = self.output / Path(name).with_suffix(".webm")
+            entry = json.loads(self.manifest.read_text())["assets"][name]
+            output = self.output / entry["output"]
+            self.assertEqual(output.suffix, ".webm")
+            self.assertLessEqual(output.stat().st_size,
+                                 int((self.source / name).stat().st_size * 0.80))
             result = subprocess.run(["ffmpeg", "-hide_banner", "-i", str(output)],
                                     capture_output=True, text=True)
             self.assertIn("Video: vp9", result.stderr)

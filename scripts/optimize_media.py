@@ -3,6 +3,8 @@
 
 import hashlib
 import json
+import math
+import os
 from pathlib import Path, PurePosixPath
 import shutil
 import subprocess
@@ -22,7 +24,11 @@ SETTINGS = {
     "image_method": 6,
     "video_crf": 32,
     "video_cpu_used": 2,
-    "audio_bitrate": "128k",
+    "video_target_ratio": 0.80,
+    "video_overhead_ratio": 0.03,
+    "video_attempts": 2,
+    "audio_bitrate": 96000,
+    "audio_mono_bitrate": 64000,
     "pillow_version": pillow_version,
 }
 
@@ -77,14 +83,52 @@ def encode_image(source, target):
 
 
 def encode_video(source, target):
-    subprocess.run([
-        "ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-y",
-        "-i", str(source), "-map", "0:v:0", "-map", "0:a:0?",
-        "-c:v", "libvpx-vp9", "-crf", str(SETTINGS["video_crf"]),
-        "-b:v", "0", "-cpu-used", str(SETTINGS["video_cpu_used"]),
-        "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p",
-        "-c:a", "libopus", "-b:a", SETTINGS["audio_bitrate"], str(target),
-    ], check=True)
+    probe = json.loads(subprocess.run([
+        "ffprobe", "-v", "error", "-show_format", "-show_streams",
+        "-of", "json", str(source),
+    ], capture_output=True, text=True, check=True).stdout)
+    duration = float(probe["format"]["duration"])
+    if not math.isfinite(duration) or duration <= 0:
+        raise ValueError(f"Invalid video duration: {source}")
+    audio = next((stream for stream in probe["streams"]
+                  if stream["codec_type"] == "audio"), None)
+    audio_bitrate = 0
+    if audio:
+        audio_bitrate = (SETTINGS["audio_mono_bitrate"] if audio.get("channels") == 1
+                         else SETTINGS["audio_bitrate"])
+        if audio.get("bit_rate") not in (None, "N/A") and int(audio["bit_rate"]) > 0:
+            audio_bitrate = min(audio_bitrate, int(audio["bit_rate"]))
+    target_size = int(source.stat().st_size * SETTINGS["video_target_ratio"])
+    total_bitrate = target_size * 8 / duration * (1 - SETTINGS["video_overhead_ratio"])
+    video_bitrate = int(total_bitrate - audio_bitrate)
+    with tempfile.TemporaryDirectory(prefix="vp9-pass-") as temporary:
+        for _ in range(SETTINGS["video_attempts"]):
+            if video_bitrate <= 0:
+                break
+            command = [
+                "ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-y",
+                "-i", str(source), "-map", "0:v:0",
+                "-c:v", "libvpx-vp9", "-crf", str(SETTINGS["video_crf"]),
+                "-b:v", str(video_bitrate), "-cpu-used", str(SETTINGS["video_cpu_used"]),
+                "-deadline", "good", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2",
+                "-pix_fmt", "yuv420p", "-passlogfile", str(Path(temporary) / "pass"),
+            ]
+            subprocess.run(command + ["-pass", "1", "-an", "-f", "null", os.devnull], check=True)
+            subprocess.run(command + [
+                "-pass", "2", "-map", "0:a:0?", "-c:a", "libopus",
+                "-b:a", str(audio_bitrate or SETTINGS["audio_bitrate"]), str(target),
+            ], check=True)
+            size = target.stat().st_size
+            if size == 0:
+                raise ValueError(f"Conversion produced no data: {source}")
+            if size <= target_size:
+                return target
+            # Leave extra headroom on the retry while retaining the CRF target.
+            video_bitrate = int(video_bitrate * target_size / size * 0.90)
+    target.unlink(missing_ok=True)
+    fallback = target.with_suffix(source.suffix)
+    shutil.copyfile(source, fallback)
+    return fallback
 
 
 def atomic_write(target, data=None, source=None):
@@ -124,7 +168,10 @@ def synchronize():
     for key, entry in old.items():
         expected = output_name(key)
         legacy = key + FORMATS[PurePosixPath(key).suffix.lower()]
-        if entry["output"] not in {expected, legacy}:
+        allowed = {expected, legacy}
+        if PurePosixPath(key).suffix.lower() == ".mp4":
+            allowed.add(key)
+        if entry["output"] not in allowed:
             raise ValueError(f"Unexpected output for {key!r}")
         destination_path(entry["output"])
 
@@ -170,7 +217,10 @@ def synchronize():
                             for field in ("source_sha256", "settings"))
             reusable = destination_path(before["output"]) if before else target
             valid = (unchanged and reusable.is_file()
-                     and before.get("output_sha256") == digest(reusable))
+                      and before.get("output_sha256") == digest(reusable))
+            if valid and source.suffix.lower() == ".mp4" and before["output"] == key:
+                assets[key] = before
+                continue
             if valid and reusable == target:
                 assets[key] = before
                 continue
@@ -180,7 +230,10 @@ def synchronize():
                 # Naming-only migrations reuse verified bytes without encoding.
                 shutil.copyfile(reusable, staged)
             elif source.suffix.lower() == ".mp4":
-                encode_video(source, staged)
+                staged = encode_video(source, staged)
+                name = staged.relative_to(stage).as_posix()
+                target = destination_path(name)
+                entry["output"] = name
             else:
                 encode_image(source, staged)
             if not staged.is_file() or staged.stat().st_size == 0:
