@@ -4,13 +4,17 @@
       "output": "IMG_2958.webp",
       "output_sha256": "be7f12ed03a37dc57b08486ee47fcd56fe4aaa5ad392836a72d712f7e7b5c1ba",
       "settings": {
-        "audio_bitrate": "128k",
+        "audio_bitrate": 96000,
+        "audio_mono_bitrate": 64000,
         "image_method": 6,
         "image_quality": 82,
         "pillow_version": "12.3.0",
         "version": 1,
+        "video_attempts": 2,
         "video_cpu_used": 2,
-        "video_crf": 32
+        "video_crf": 32,
+        "video_overhead_ratio": 0.03,
+        "video_target_ratio": 0.8
       },
       "source_sha256": "3c5a6e41d4c3cd3a3ffe8394d08f5e989747b2e35e04ce773460d680f2b44ca8"
     },
@@ -18,13 +22,17 @@
       "output": "IMG_2959.webp",
       "output_sha256": "789f27cd0f5e6a6b69aa96311b51a6aec23e2d2d00d9a4b1fa87a681419825f6",
       "settings": {
-        "audio_bitrate": "128k",
+        "audio_bitrate": 96000,
+        "audio_mono_bitrate": 64000,
         "image_method": 6,
         "image_quality": 82,
         "pillow_version": "12.3.0",
         "version": 1,
+        "video_attempts": 2,
         "video_cpu_used": 2,
-        "video_crf": 32
+        "video_crf": 32,
+        "video_overhead_ratio": 0.03,
+        "video_target_ratio": 0.8
       },
       "source_sha256": "df0487acbbed732dc93234ef78f5f0e26d83a0edbbbd683b535bc06f541a26e9"
     },
@@ -32,13 +40,17 @@
       "output": "__original_drawn_by_axleaki__18b8c44c017657f675f29a35065b9d8d.webp",
       "output_sha256": "80b0ce96acbac8ede01a23a8252eb1dc1c968f9247808b45e2589c62cc121cee",
       "settings": {
-        "audio_bitrate": "128k",
+        "audio_bitrate": 96000,
+        "audio_mono_bitrate": 64000,
         "image_method": 6,
         "image_quality": 82,
         "pillow_version": "12.3.0",
         "version": 1,
+        "video_attempts": 2,
         "video_cpu_used": 2,
-        "video_crf": 32
+        "video_crf": 32,
+        "video_overhead_ratio": 0.03,
+        "video_target_ratio": 0.8
       },
       "source_sha256": "44a6e92656a12500c6befb8175723451b360413ba06b54bbaed3d27d6fedf7bd"
     },
@@ -46,43 +58,55 @@
       "output": "duck.webp",
       "output_sha256": "e468790abbfa2eb37cab2afdad1bf031f1b559aaf542fddabd273cbdd5ea2884",
       "settings": {
-        "audio_bitrate": "128k",
+        "audio_bitrate": 96000,
+        "audio_mono_bitrate": 64000,
         "image_method": 6,
         "image_quality": 82,
         "pillow_version": "12.3.0",
         "version": 1,
+        "video_attempts": 2,
         "video_cpu_used": 2,
-        "video_crf": 32
+        "video_crf": 32,
+        "video_overhead_ratio": 0.03,
+        "video_target_ratio": 0.8
       },
       "source_sha256": "98fb56cac79eb817ba125bf8afd8f1b6cca9e4777c545aee631578ef0cf32ae3"
     },
     "duck.mp4": {
       "output": "duck.webm",
-      "output_sha256": "d45f348e70bdc61c629bcd859fac09bff719161e91fc29258f55c244a919dac7",
+      "output_sha256": "44d98c5ee9b0698b7251136e1447a5c89d0b8af458676409ba982b74c08da0ef",
       "settings": {
-        "audio_bitrate": "128k",
+        "audio_bitrate": 96000,
+        "audio_mono_bitrate": 64000,
         "ffmpeg_version": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
         "image_method": 6,
         "image_quality": 82,
         "pillow_version": "12.3.0",
         "version": 1,
+        "video_attempts": 2,
         "video_cpu_used": 2,
-        "video_crf": 32
+        "video_crf": 32,
+        "video_overhead_ratio": 0.03,
+        "video_target_ratio": 0.8
       },
       "source_sha256": "17df3ff5e4078a3d50306733722d59ef236404b1044bf81848a23afef5c3433d"
     },
     "everything_is_temporary.mp4": {
       "output": "everything_is_temporary.webm",
-      "output_sha256": "98ca8e51e6f95ebf345ee4e8d98417e59162ad5adc8f10057d825220662792db",
+      "output_sha256": "27850bea8463b92529c5a35d0dffa31689b485cae87d7c7bcc7a82580190e820",
       "settings": {
-        "audio_bitrate": "128k",
+        "audio_bitrate": 96000,
+        "audio_mono_bitrate": 64000,
         "ffmpeg_version": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
         "image_method": 6,
         "image_quality": 82,
         "pillow_version": "12.3.0",
         "version": 1,
+        "video_attempts": 2,
         "video_cpu_used": 2,
-        "video_crf": 32
+        "video_crf": 32,
+        "video_overhead_ratio": 0.03,
+        "video_target_ratio": 0.8
       },
       "source_sha256": "6549c75ab4293f3460936753a1c2ca958958391f95c857802e7538ee1d9e90a2"
     }
