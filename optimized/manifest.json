@@ -58,7 +58,7 @@
     },
     "duck.mp4": {
       "output": "duck.webm",
-      "output_sha256": "0a4907747e0161768e5228c14cc2b5cdcdf30dfccd0735e8c18c03a91222a39b",
+      "output_sha256": "d45f348e70bdc61c629bcd859fac09bff719161e91fc29258f55c244a919dac7",
       "settings": {
         "audio_bitrate": "128k",
         "ffmpeg_version": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
@@ -69,7 +69,7 @@
         "video_cpu_used": 2,
         "video_crf": 32
       },
-      "source_sha256": "cac5a8c74ed40319f3137e311ea326d0e62bbf31409a92d132ce7645573b0bfa"
+      "source_sha256": "17df3ff5e4078a3d50306733722d59ef236404b1044bf81848a23afef5c3433d"
     }
   },
   "version": 1
