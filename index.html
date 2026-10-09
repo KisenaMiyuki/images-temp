@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Media</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; color-scheme: light dark; }
+    body { max-width: 72rem; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.5rem; margin-bottom: .5rem; }
+    #media { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); gap: 1rem; }
+    article { border: 1px solid GrayText; border-radius: .3rem; padding: .75rem; min-width: 0; }
+    img, video { display: block; width: 100%; height: 14rem; object-fit: contain; margin-bottom: .75rem; }
+    h2 { font-size: .9rem; font-weight: 500; overflow-wrap: anywhere; }
+    .controls { display: flex; align-items: center; gap: .75rem; }
+    button, input { font: inherit; }
+    input { box-sizing: border-box; width: 100%; margin-top: .75rem; font-size: .8rem; }
+    #status { min-height: 1.5em; color: GrayText; }
+  </style>
+</head>
+<body>
+  <h1>Media</h1>
+  <p>Optimized outputs. Open a file or copy its direct link.</p>
+  <p id="status" role="status">Loading media...</p>
+  <main id="media" aria-label="Tracked media"></main>
+  <noscript>Enable JavaScript to list media, or view <a href="optimized/manifest.json">the manifest</a>.</noscript>
+  <script type="module">
+    const status = document.querySelector('#status');
+    const media = document.querySelector('#media');
+    try {
+      const response = await fetch('optimized/manifest.json', { cache: 'no-cache' });
+      if (!response.ok) throw new Error(`Manifest request failed (${response.status})`);
+      const manifest = await response.json();
+      if (manifest.version !== 1 || !manifest.assets || typeof manifest.assets !== 'object') {
+        throw new Error('Unsupported media manifest');
+      }
+      const entries = Object.entries(manifest.assets).sort(([a], [b]) => a.localeCompare(b));
+      for (const [source, entry] of entries) {
+        const parts = entry.output.split('/');
+        if (parts.some(part => !part || part === '.' || part === '..' || /[\\:]/.test(part))) {
+          throw new Error('Invalid media path');
+        }
+        const url = new URL(`optimized/${parts.map(encodeURIComponent).join('/')}`, document.baseURI).href;
+        const card = document.createElement('article');
+        const video = /\.(webm|mp4)$/i.test(entry.output);
+        const preview = document.createElement(video ? 'video' : 'img');
+        if (video) {
+          preview.controls = true;
+          preview.preload = 'none';
+          preview.playsInline = true;
+          preview.setAttribute('aria-label', source);
+        } else {
+          preview.alt = source;
+          preview.loading = 'lazy';
+          preview.decoding = 'async';
+        }
+        preview.src = url;
+        preview.addEventListener('error', () => {
+          preview.replaceWith(document.createTextNode('Preview unavailable.'));
+        }, { once: true });
+        const name = document.createElement('h2');
+        name.textContent = entry.output;
+        const controls = document.createElement('div');
+        controls.className = 'controls';
+        const open = document.createElement('a');
+        open.href = url;
+        open.textContent = 'Open file';
+        const copy = document.createElement('button');
+        copy.type = 'button';
+        copy.textContent = 'Copy link';
+        copy.setAttribute('aria-label', `Copy link to ${entry.output}`);
+        const link = document.createElement('input');
+        link.type = 'text';
+        link.readOnly = true;
+        link.value = url;
+        link.setAttribute('aria-label', `Direct link to ${entry.output}`);
+        link.addEventListener('click', () => link.select());
+        copy.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(url);
+            status.textContent = `Copied link to ${entry.output}`;
+          } catch {
+            link.focus();
+            link.select();
+            status.textContent = 'Clipboard unavailable. The link is selected; copy it manually.';
+          }
+        });
+        controls.append(open, copy);
+        card.append(preview, name, controls, link);
+        media.append(card);
+      }
+      status.textContent = entries.length ? `${entries.length} tracked outputs` : 'No tracked media yet.';
+    } catch (error) {
+      status.textContent = `Could not load media: ${error.message}. Serve this page over HTTP to preview locally.`;
+    }
+  </script>
+</body>
+</html>

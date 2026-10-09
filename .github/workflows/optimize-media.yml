@@ -9,6 +9,9 @@ on:
       - 'scripts/optimize_media.py'
       - 'scripts/requirements-media.txt'
       - 'tests/test_optimize_media.py'
+      - 'tests/test_build_pages.py'
+      - 'scripts/build_pages.py'
+      - 'index.html'
       - '.github/workflows/optimize-media.yml'
   workflow_dispatch:
 
@@ -49,3 +52,23 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'chore: synchronize optimized media'
           git push origin HEAD:main
+      - name: Stage Pages site and enforce size limit
+        run: python -B scripts/build_pages.py "$RUNNER_TEMP/pages-site"
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ runner.temp }}/pages-site
+
+  deploy:
+    needs: optimize
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,11 +1,36 @@
 # images-temp
 
 ```
-https://kisenamiyuki.github.io/images-temp/optimized/
+https://kisenamiyuki.github.io/images-temp/
 ```
 
 Add source media to `originals/`. GitHub Actions maintains `optimized/` on pushes
 to `main`; you can also run **Optimize media** manually in the Actions tab.
+
+## Media Page
+
+The homepage lists outputs from `optimized/manifest.json` with image/video
+previews, direct file links, and **Copy link** buttons. Links respect the Pages
+project path and encode filenames. If clipboard access is unavailable, select
+and copy the read-only link field. Images load lazily; videos do not preload.
+
+In **Settings > Pages > Build and deployment**, choose **GitHub Actions** as the
+source. The optimization workflow deploys after synchronization and its bot
+commit, so the page and published outputs stay in sync. Run the workflow manually
+for the first deployment if needed.
+
+[GitHub Pages limits](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits)
+include a **1 GB maximum published site**, a recommended 1 GB source repository
+limit, and a **soft 100 GB/month bandwidth limit**. Deployment packages only
+`index.html`, the manifest, and manifest-listed outputs, excluding originals,
+Git history, scripts, and unmanaged files. Packaging fails before upload if files
+are missing or the total reaches 1,000,000,000 bytes; it never silently omits media.
+Large collections or heavy traffic should use dedicated object storage/CDN instead.
+
+Preview locally with `python -m http.server 8000`, then open
+`http://localhost:8000/`. Synchronize first if manifest-listed outputs are missing.
+
+## Optimization
 
 | Original | Optimized |
 | --- | --- |
