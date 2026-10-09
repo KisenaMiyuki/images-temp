@@ -16,7 +16,18 @@ def build(root, destination, limit=MAX_BYTES):
     if manifest.get('version') != 1 or not isinstance(manifest.get('assets'), dict):
         raise ValueError('Unsupported media manifest')
     files = {Path('index.html'), Path('optimized/manifest.json')}
-    for entry in manifest['assets'].values():
+    for key, entry in manifest['assets'].items():
+        source_path = PurePosixPath(key)
+        if (source_path.is_absolute() or str(source_path) != key or '..' in source_path.parts
+                or '\\' in key or ':' in key or not source_path.suffix):
+            raise ValueError(f'Invalid source path: {key!r}')
+        original = root / 'originals' / source_path
+        if not original.resolve().is_relative_to((root / 'originals').resolve()) or any(
+                part.is_symlink() for part in [original, *original.parents]):
+            raise ValueError(f'Symlink or escaped source path: {key}')
+        if not original.is_file():
+            raise ValueError(f'Missing original file: {key}')
+        entry['source_bytes'] = original.stat().st_size
         name = entry['output']
         path = PurePosixPath(name)
         if (path.is_absolute() or str(path) != name or '..' in path.parts
@@ -31,7 +42,12 @@ def build(root, destination, limit=MAX_BYTES):
             raise ValueError(f'Symlink or escaped path: {relative}')
         if not source.is_file():
             raise ValueError(f'Missing published file: {relative}; run media synchronization first')
-        total += source.stat().st_size
+        if relative != Path('optimized/manifest.json'):
+            total += source.stat().st_size
+    for entry in manifest['assets'].values():
+        entry['output_bytes'] = (root / 'optimized' / entry['output']).stat().st_size
+    manifest_content = (json.dumps(manifest, indent=2, sort_keys=True) + '\n').encode('utf-8')
+    total += len(manifest_content)
     if total >= limit:
         raise ValueError(f'Pages site is {total:,} bytes; must be below {limit:,} bytes')
     if destination.exists():
@@ -40,7 +56,10 @@ def build(root, destination, limit=MAX_BYTES):
     for relative in sorted(files):
         target = destination / relative
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(root / relative, target)
+        if relative == Path('optimized/manifest.json'):
+            target.write_bytes(manifest_content)
+        else:
+            shutil.copyfile(root / relative, target)
     print(f'Staged {len(files)} files, {total:,} bytes ({total / limit:.1%} of Pages size budget).')
 
 

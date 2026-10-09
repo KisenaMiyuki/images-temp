@@ -13,6 +13,7 @@
     article { border: 1px solid GrayText; border-radius: .3rem; padding: .75rem; min-width: 0; }
     img, video { display: block; width: 100%; height: 14rem; object-fit: contain; margin-bottom: .75rem; }
     h2 { font-size: .9rem; font-weight: 500; overflow-wrap: anywhere; }
+    .sizes { font-size: .85rem; color: GrayText; }
     .controls { display: flex; align-items: center; gap: .75rem; }
     button, input { font: inherit; }
     input { box-sizing: border-box; width: 100%; margin-top: .75rem; font-size: .8rem; }
@@ -28,6 +29,12 @@
   <script type="module">
     const status = document.querySelector('#status');
     const media = document.querySelector('#media');
+    function formatBytes(bytes) {
+      if (!Number.isSafeInteger(bytes) || bytes < 0) return 'unknown';
+      if (bytes < 1024) return `${bytes} B`;
+      const unit = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), 3);
+      return `${(bytes / 1024 ** unit).toLocaleString(undefined, { maximumFractionDigits: 1 })} ${['B', 'KiB', 'MiB', 'GiB'][unit]}`;
+    }
     try {
       const response = await fetch('optimized/manifest.json', { cache: 'no-cache' });
       if (!response.ok) throw new Error(`Manifest request failed (${response.status})`);
@@ -61,6 +68,15 @@
         }, { once: true });
         const name = document.createElement('h2');
         name.textContent = entry.output;
+        const sizes = document.createElement('p');
+        sizes.className = 'sizes';
+        sizes.textContent = `Before: ${formatBytes(entry.source_bytes)} / After: ${formatBytes(entry.output_bytes)}`;
+        if (Number.isSafeInteger(entry.source_bytes) && entry.source_bytes > 0
+            && Number.isSafeInteger(entry.output_bytes) && entry.output_bytes >= 0) {
+          const change = (entry.output_bytes / entry.source_bytes - 1) * 100;
+          sizes.textContent += change === 0 ? ' (unchanged)' : ` (${Math.abs(change).toFixed(1)}% ${change < 0 ? 'smaller' : 'larger'})`;
+          sizes.title = `${entry.source_bytes.toLocaleString()} bytes before / ${entry.output_bytes.toLocaleString()} bytes after`;
+        }
         const controls = document.createElement('div');
         controls.className = 'controls';
         const open = document.createElement('a');
@@ -87,7 +103,7 @@
           }
         });
         controls.append(open, copy);
-        card.append(preview, name, controls, link);
+        card.append(preview, name, sizes, controls, link);
         media.append(card);
       }
       status.textContent = entries.length ? `${entries.length} tracked outputs` : 'No tracked media yet.';
