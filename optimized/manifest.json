@@ -70,6 +70,21 @@
         "video_crf": 32
       },
       "source_sha256": "17df3ff5e4078a3d50306733722d59ef236404b1044bf81848a23afef5c3433d"
+    },
+    "everything_is_temporary.mp4": {
+      "output": "everything_is_temporary.webm",
+      "output_sha256": "98ca8e51e6f95ebf345ee4e8d98417e59162ad5adc8f10057d825220662792db",
+      "settings": {
+        "audio_bitrate": "128k",
+        "ffmpeg_version": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
+        "image_method": 6,
+        "image_quality": 82,
+        "pillow_version": "12.3.0",
+        "version": 1,
+        "video_cpu_used": 2,
+        "video_crf": 32
+      },
+      "source_sha256": "6549c75ab4293f3460936753a1c2ca958958391f95c857802e7538ee1d9e90a2"
     }
   },
   "version": 1
