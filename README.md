@@ -1,5 +1,9 @@
 # images-temp
 
+```
+https://kisenamiyuki.github.io/images-temp/optimized/
+```
+
 Add source media to `originals/`. GitHub Actions maintains `optimized/` on pushes
 to `main`; you can also run **Optimize media** manually in the Actions tab.
 
