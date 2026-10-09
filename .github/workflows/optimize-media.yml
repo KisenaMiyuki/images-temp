@@ -1,0 +1,51 @@
+name: Optimize media
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'originals/**'
+      - 'optimized/**'
+      - 'scripts/optimize_media.py'
+      - 'scripts/requirements-media.txt'
+      - 'tests/test_optimize_media.py'
+      - '.github/workflows/optimize-media.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: optimize-media-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install converters
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ffmpeg
+          python -m pip install -r scripts/requirements-media.txt
+      - name: Verify synchronization
+        run: python -B -m unittest discover -s tests -v
+      - name: Synchronize optimized media
+        run: python -B scripts/optimize_media.py
+      - name: Commit optimized media
+        run: |
+          git add -- optimized/
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore: synchronize optimized media'
+          git push origin HEAD:main
