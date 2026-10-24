@@ -109,6 +109,24 @@
         "video_target_ratio": 0.8
       },
       "source_sha256": "6549c75ab4293f3460936753a1c2ca958958391f95c857802e7538ee1d9e90a2"
+    },
+    "\u8eba\u8f66\u91cc\u7b49\u5145\u7535.png": {
+      "output": "\u8eba\u8f66\u91cc\u7b49\u5145\u7535.webp",
+      "output_sha256": "4ef835d474b67f4f7a699f5e1bf8057c190d18cc7e004cd4195e9c30179686f7",
+      "settings": {
+        "audio_bitrate": 96000,
+        "audio_mono_bitrate": 64000,
+        "image_method": 6,
+        "image_quality": 82,
+        "pillow_version": "12.3.0",
+        "version": 1,
+        "video_attempts": 2,
+        "video_cpu_used": 2,
+        "video_crf": 32,
+        "video_overhead_ratio": 0.03,
+        "video_target_ratio": 0.8
+      },
+      "source_sha256": "7a1ec0bce03bcff96d73468c2681e8bf1ed71104782b235efedaa3719dfaac60"
     }
   },
   "version": 1
