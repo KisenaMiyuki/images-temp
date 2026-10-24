@@ -211,18 +211,18 @@ def synchronize():
             name = output_name(key)
             target = destination_path(name)
             settings = video_settings if source.suffix.lower() == ".mp4" else SETTINGS
-            entry = {"output": name, "source_sha256": digest(source), "settings": settings}
+            entry = {"output": name, "source_sha256": digest(source), "settings": settings,
+                     "source_bytes": source.stat().st_size}
             before = old.get(key, {})
             unchanged = all(before.get(field) == entry[field]
                             for field in ("source_sha256", "settings"))
             reusable = destination_path(before["output"]) if before else target
             valid = (unchanged and reusable.is_file()
                       and before.get("output_sha256") == digest(reusable))
-            if valid and source.suffix.lower() == ".mp4" and before["output"] == key:
-                assets[key] = before
-                continue
-            if valid and reusable == target:
-                assets[key] = before
+            if valid and (reusable == target or (
+                    source.suffix.lower() == ".mp4" and before["output"] == key)):
+                assets[key] = {**before, "source_bytes": entry["source_bytes"],
+                               "output_bytes": reusable.stat().st_size}
                 continue
             staged = stage / name
             staged.parent.mkdir(parents=True, exist_ok=True)
@@ -239,6 +239,7 @@ def synchronize():
             if not staged.is_file() or staged.stat().st_size == 0:
                 raise ValueError(f"Conversion produced no data: {key}")
             entry["output_sha256"] = digest(staged)
+            entry["output_bytes"] = staged.stat().st_size
             assets[key] = entry
             changed.append((staged, target))
             action = "Migrated" if valid else "Converted"

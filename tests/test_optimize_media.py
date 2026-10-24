@@ -51,6 +51,8 @@ class SynchronizationTests(unittest.TestCase):
         self.assertEqual(len(assets), 4)
         for key, entry in assets.items():
             self.assertEqual(entry["output"], Path(key).with_suffix(".webp").as_posix())
+            self.assertEqual(entry["source_bytes"], (self.source / key).stat().st_size)
+            self.assertEqual(entry["output_bytes"], (self.output / entry["output"]).stat().st_size)
             with Image.open(self.output / entry["output"]) as image:
                 self.assertEqual(image.size, (16, 12))
 
@@ -105,6 +107,28 @@ class SynchronizationTests(unittest.TestCase):
             media.synchronize()
         self.assertEqual(self.snapshot(), before)
         self.assertEqual(self.manifest.stat().st_mtime_ns, stamp)
+
+    def test_cached_output_sizes_are_backfilled_without_reencoding(self):
+        source = self.image()
+        media.synchronize()
+        target = self.output / "photo.webp"
+        expected = target.read_bytes()
+        stamp = target.stat().st_mtime_ns
+        for sizes in [{}, {"source_bytes": 1, "output_bytes": 2}]:
+            with self.subTest(sizes=sizes):
+                manifest = json.loads(self.manifest.read_text())
+                entry = manifest["assets"]["photo.png"]
+                entry.pop("source_bytes")
+                entry.pop("output_bytes")
+                entry.update(sizes)
+                self.manifest.write_text(json.dumps(manifest))
+                with patch.object(media, "encode_image", side_effect=AssertionError("reencoded")):
+                    media.synchronize()
+                entry = json.loads(self.manifest.read_text())["assets"]["photo.png"]
+                self.assertEqual(entry["source_bytes"], source.stat().st_size)
+                self.assertEqual(entry["output_bytes"], len(expected))
+                self.assertEqual(target.read_bytes(), expected)
+                self.assertEqual(target.stat().st_mtime_ns, stamp)
 
     def test_same_filename_replacement_and_settings_change(self):
         self.image()
@@ -291,6 +315,11 @@ class SynchronizationTests(unittest.TestCase):
             before = self.snapshot()
             self.assertEqual(json.loads(self.manifest.read_text())["assets"]["clip.mp4"]["output"],
                              "clip.mp4")
+            manifest = json.loads(self.manifest.read_text())
+            entry = manifest["assets"]["clip.mp4"]
+            self.assertEqual(entry.pop("source_bytes"), source.stat().st_size)
+            self.assertEqual(entry.pop("output_bytes"), source.stat().st_size)
+            self.manifest.write_text(json.dumps(manifest))
             with patch.object(media, "encode_video", side_effect=AssertionError("reencoded")):
                 media.synchronize()
             self.assertEqual(self.snapshot(), before)

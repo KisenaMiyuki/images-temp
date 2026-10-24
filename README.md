@@ -14,11 +14,11 @@ previews, direct file links, and **Copy link** buttons. Links respect the Pages
 project path and encode filenames. If clipboard access is unavailable, select
 and copy the read-only link field. Images load lazily; videos do not preload.
 Each card shows before/after file sizes and the percentage decrease or increase.
-Packaging adds `source_bytes` and `output_bytes` to the published manifest without
-changing the tracked manifest or publishing originals. Hover over the size text
-for exact byte counts. Sizes are shown as unknown when previewing the raw repository
-manifest; to preview sizes locally, run `python -B scripts/build_pages.py` with a
-new staging-directory path and serve that directory with
+Synchronization records `source_bytes` and `output_bytes` in the tracked manifest,
+including for cached outputs without reencoding. Packaging refreshes these sizes
+without publishing originals. Hover over the size text for exact byte counts.
+To preview the packaged site locally, run `python -B scripts/build_pages.py` with
+a new staging-directory path and serve that directory with
 `python -m http.server 8000 --directory <staging-directory>`.
 
 In **Settings > Pages > Build and deployment**, choose **GitHub Actions** as the
@@ -55,7 +55,7 @@ the original extensions. Sources such as `a.jpg` and `a.png` would both produce
 Existing files using the previous `a.jpg.webp` naming migrate automatically,
 reusing verified bytes without reencoding.
 
-`optimized/manifest.json` records source and output SHA-256 hashes and encoding
+`optimized/manifest.json` records source and output byte sizes, SHA-256 hashes, and encoding
 settings. Unchanged files are skipped; changed sources, missing or modified
 outputs, and changed settings cause regeneration. Removing or renaming a source
 removes its previous output. Only files recorded in the manifest are pruned;
