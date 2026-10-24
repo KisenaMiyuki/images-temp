@@ -54,7 +54,7 @@ jobs:
           git push origin HEAD:main
       - name: Stage Pages site and enforce size limit
         run: python -B scripts/build_pages.py "$RUNNER_TEMP/pages-site"
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: ${{ runner.temp }}/pages-site
 
@@ -71,4 +71,4 @@ jobs:
     steps:
       - name: Deploy GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
