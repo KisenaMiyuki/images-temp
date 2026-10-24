@@ -1,98 +1,49 @@
 # images-temp
 
-```
-https://kisenamiyuki.github.io/images-temp/
-```
+[**Browse media →**](https://kisenamiyuki.github.io/images-temp/)
 
-Add source media to `originals/`. GitHub Actions maintains `optimized/` on pushes
-to `main`; you can also run **Optimize media** manually in the Actions tab.
+Add media to `originals/` and push to `main`. GitHub Actions updates `optimized/`
+and deploys the media page with previews, file sizes, and copyable direct links.
+You can also run **Optimize media** manually from the Actions tab.
 
-## Media Page
+## Formats
 
-The homepage lists outputs from `optimized/manifest.json` with image/video
-previews, direct file links, and **Copy link** buttons. Links respect the Pages
-project path and encode filenames. If clipboard access is unavailable, select
-and copy the read-only link field. Images load lazily; videos do not preload.
-Each card shows before/after file sizes and the percentage decrease or increase.
-Synchronization records `source_bytes` and `output_bytes` in the tracked manifest,
-including for cached outputs without reencoding. Packaging refreshes these sizes
-without publishing originals. Hover over the size text for exact byte counts.
-To preview the packaged site locally, run `python -B scripts/build_pages.py` with
-a new staging-directory path and serve that directory with
-`python -m http.server 8000 --directory <staging-directory>`.
-
-In **Settings > Pages > Build and deployment**, choose **GitHub Actions** as the
-source. The optimization workflow deploys after synchronization and its bot
-commit, so the page and published outputs stay in sync. Run the workflow manually
-for the first deployment if needed.
-
-[GitHub Pages limits](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits)
-include a **1 GB maximum published site**, a recommended 1 GB source repository
-limit, and a **soft 100 GB/month bandwidth limit**. Deployment packages only
-`index.html`, the manifest, and manifest-listed outputs, excluding originals,
-Git history, scripts, and unmanaged files. Packaging fails before upload if files
-are missing or the total reaches 1,000,000,000 bytes; it never silently omits media.
-Large collections or heavy traffic should use dedicated object storage/CDN instead.
-
-Preview locally with `python -m http.server 8000`, then open
-`http://localhost:8000/`. Synchronize first if manifest-listed outputs are missing.
-
-## Optimization
-
-| Original | Optimized |
+| Source | Output |
 | --- | --- |
 | JPG / JPEG / PNG | WebP (quality 82) |
-| GIF / animated PNG | Animated WebP, retaining frame timing and looping |
-| MP4 | Two-pass VP9 WebM with Opus audio, or original MP4 if the size target cannot be met |
+| GIF / animated PNG | Animated WebP, preserving timing and looping |
+| MP4 | VP9 WebM with Opus audio; original MP4 if the 80% size target cannot be met |
 
-Subdirectories are retained and extensions are replaced: `originals/photos/a.jpg`
-becomes `optimized/photos/a.webp`, and `originals/demo.mp4` becomes
-`optimized/demo.webm` when conversion meets the size target, otherwise
-`optimized/demo.mp4`. Use the manifest's `output` field to locate the selected file.
-Manifest keys remain relative source filenames, including
-the original extensions. Sources such as `a.jpg` and `a.png` would both produce
-`a.webp`; the script rejects these collisions before changing any outputs.
-Existing files using the previous `a.jpg.webp` naming migrate automatically,
-reusing verified bytes without reencoding.
+Subdirectories are preserved: `originals/photos/a.jpg` → `optimized/photos/a.webp`.
+Output-name collisions are rejected. Originals are never modified; unsupported
+formats are ignored, and conversion does not always reduce file size.
 
-`optimized/manifest.json` records source and output byte sizes, SHA-256 hashes, and encoding
-settings. Unchanged files are skipped; changed sources, missing or modified
-outputs, and changed settings cause regeneration. Removing or renaming a source
-removes its previous output. Only files recorded in the manifest are pruned;
-other files in `optimized/` are left alone. Keep the manifest under version control.
+Keep `optimized/manifest.json` tracked: it records output paths, sizes, hashes,
+and settings. Unchanged files are skipped, deleted sources lose their tracked
+outputs, and failed conversions leave existing outputs intact. Keep
+`originals/.gitkeep` so the source folder survives removal of its last file.
 
-All conversions are staged before replacing outputs or removing stale files.
-A conversion failure leaves existing outputs and the manifest unchanged.
-Keep `originals/.gitkeep` so deleting the last original retains the source folder.
-Unsupported formats are ignored. Originals are never modified. Output size
-depends on source content and quality; conversion does not guarantee a smaller file.
+## Deployment
 
-Videos target 80% of the original file size. FFprobe supplies duration and audio
-metadata; two-pass VP9 distributes the calculated bitrate across scenes, reserving
-3% for overhead. Opus targets 64 kbps for mono or 96 kbps otherwise, capped at the
-source audio bitrate when known. Silent videos reserve no audio budget. Resolution
-and frame rate are preserved (odd dimensions are padded to even dimensions).
-CRF 32 supplies a constrained-quality target alongside the bitrate budget, but
-does not guarantee perceptual quality.
-An oversized result gets one retry with a lower bitrate. If the target still cannot
-be met, or audio leaves no video budget, the original MP4 is copied unchanged instead.
-Only WebMs at or below the size target are published. Fallbacks are cached and tracked
-in the manifest just like converted files. Encoding/probing failures still abort the
-run without replacing existing outputs. There is no automated perceptual quality
-assessment; inspect representative videos before adjusting the quality/size settings.
+Set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**
+and allow the workflow bot to push to `main`. If a bot push is rejected by a
+concurrent update, rerun the workflow.
 
-For a local run, install Python 3.12 or newer and FFmpeg/FFprobe (with libvpx-vp9 and
-libopus support) on your PATH, then run:
+Only the page, manifest, and tracked outputs are published—not originals.
+Packaging rejects missing files or a site reaching 1 GB. See
+[GitHub Pages limits](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits);
+use object storage/CDN for larger collections or heavy traffic.
+
+## Local use
+
+Requires Python 3.12+ and FFmpeg/FFprobe on `PATH` with libvpx-vp9 and libopus support.
 
 ```sh
 python -m pip install -r scripts/requirements-media.txt
 python scripts/optimize_media.py
 python -B -m unittest discover -s tests -v
+python -m http.server 8000
 ```
 
-Adjust conversion settings in `scripts/optimize_media.py`. The action commits
-generated files to `main` using `GITHUB_TOKEN`; repository rules must permit
-the bot to push. [Bot pushes do not trigger other push workflows](https://docs.github.com/en/actions/concepts/security/github_token),
-so deployment that needs these assets should run after synchronization in the
-same workflow or be triggered explicitly. Concurrent pushes are never force-pushed
-over: if a push is rejected, rerun the workflow against the latest `main`.
+Open <http://localhost:8000/>. Adjust encoding settings in
+`scripts/optimize_media.py`; inspect video quality after changes.
