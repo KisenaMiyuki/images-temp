@@ -82,12 +82,12 @@
     },
     "duck.mp4": {
       "output": "duck.webm",
-      "output_bytes": 4856175,
-      "output_sha256": "44d98c5ee9b0698b7251136e1447a5c89d0b8af458676409ba982b74c08da0ef",
+      "output_bytes": 4854615,
+      "output_sha256": "8fcd67b1507d69aa74fed6faa5477ebedcee796c789ecae0d30763995bed55e9",
       "settings": {
         "audio_bitrate": 96000,
         "audio_mono_bitrate": 64000,
-        "ffmpeg_version": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
+        "ffmpeg_version": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers",
         "image_method": 6,
         "image_quality": 82,
         "pillow_version": "12.3.0",
@@ -103,12 +103,12 @@
     },
     "everything_is_temporary.mp4": {
       "output": "everything_is_temporary.webm",
-      "output_bytes": 1102392,
-      "output_sha256": "27850bea8463b92529c5a35d0dffa31689b485cae87d7c7bcc7a82580190e820",
+      "output_bytes": 1102576,
+      "output_sha256": "0f00e58f3ca3536d3945be27e5554193dc3e8d6b3e10282c59855f98f61262b9",
       "settings": {
         "audio_bitrate": 96000,
         "audio_mono_bitrate": 64000,
-        "ffmpeg_version": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
+        "ffmpeg_version": "ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers",
         "image_method": 6,
         "image_quality": 82,
         "pillow_version": "12.3.0",
@@ -121,6 +121,26 @@
       },
       "source_bytes": 1419621,
       "source_sha256": "6549c75ab4293f3460936753a1c2ca958958391f95c857802e7538ee1d9e90a2"
+    },
+    "photo_2026-11-08_17-51-20.jpg": {
+      "output": "photo_2026-11-08_17-51-20.webp",
+      "output_bytes": 321530,
+      "output_sha256": "431a9ca9c6b918439df120942fc69bea7b4b3d391017b62d19253c20110c1ed6",
+      "settings": {
+        "audio_bitrate": 96000,
+        "audio_mono_bitrate": 64000,
+        "image_method": 6,
+        "image_quality": 82,
+        "pillow_version": "12.3.0",
+        "version": 1,
+        "video_attempts": 2,
+        "video_cpu_used": 2,
+        "video_crf": 32,
+        "video_overhead_ratio": 0.03,
+        "video_target_ratio": 0.8
+      },
+      "source_bytes": 407697,
+      "source_sha256": "169bd2046d9566c067b97bc362cbb330491ffce93ceec69dd656283297d56458"
     },
     "\u8eba\u8f66\u91cc\u7b49\u5145\u7535.png": {
       "output": "\u8eba\u8f66\u91cc\u7b49\u5145\u7535.webp",
